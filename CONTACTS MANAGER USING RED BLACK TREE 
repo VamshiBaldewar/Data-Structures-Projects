@@ -1,0 +1,171 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef enum { RED, BLACK } Color;
+
+typedef struct Node {
+    char name[100];
+    char phoneNumber[15];
+    Color color;
+    struct Node *left, *right, *parent;
+} Node;
+
+Node *root = NULL;
+
+Node* createNode(char* name, char* phoneNumber) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    strcpy(newNode->name, name);
+    strcpy(newNode->phoneNumber, phoneNumber);
+    newNode->color = RED;
+    newNode->left = newNode->right = newNode->parent = NULL;
+    return newNode;
+}
+
+void leftRotate(Node** root, Node* x) {
+    Node* y = x->right;
+    x->right = y->left;
+    if (y->left) y->left->parent = x;
+    y->parent = x->parent;
+    if (!x->parent) *root = y;
+    else if (x == x->parent->left) x->parent->left = y;
+    else x->parent->right = y;
+    y->left = x;
+    x->parent = y;
+}
+
+void rightRotate(Node** root, Node* y) {
+    Node* x = y->left;
+    y->left = x->right;
+    if (x->right) x->right->parent = y;
+    x->parent = y->parent;
+    if (!y->parent) *root = x;
+    else if (y == y->parent->right) y->parent->right = x;
+    else y->parent->left = x;
+    x->right = y;
+    y->parent = x;
+}
+
+void fixInsert(Node** root, Node* z) {
+    while (z->parent && z->parent->color == RED) {
+        if (z->parent == z->parent->parent->left) {
+            Node* y = z->parent->parent->right;
+            if (y && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
+            } else {
+                if (z == z->parent->right) {
+                    z = z->parent;
+                    leftRotate(root, z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                rightRotate(root, z->parent->parent);
+            }
+        } else {
+            Node* y = z->parent->parent->left;
+            if (y && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
+            } else {
+                if (z == z->parent->left) {
+                    z = z->parent;
+                    rightRotate(root, z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                leftRotate(root, z->parent->parent);
+            }
+        }
+    }
+    (*root)->color = BLACK;
+}
+
+void insert(Node** root, char* name, char* phoneNumber) {
+    Node* z = createNode(name, phoneNumber);
+    Node* y = NULL;
+    Node* x = *root;
+
+    while (x != NULL) {
+        y = x;
+        if (strcmp(z->name, x->name) < 0)
+            x = x->left;
+        else
+            x = x->right;
+    }
+
+    z->parent = y;
+    if (!y)
+        *root = z;
+    else if (strcmp(z->name, y->name) < 0)
+        y->left = z;
+    else
+        y->right = z;
+
+    fixInsert(root, z);
+}
+
+Node* search(Node* root, char* name) {
+    while (root != NULL) {
+        int cmp = strcmp(name, root->name);
+        if (cmp == 0)
+            return root;
+        else if (cmp < 0)
+            root = root->left;
+        else
+            root = root->right;
+    }
+    return NULL;
+}
+
+void inOrderTraversal(Node* root) {
+    if (root) {
+        inOrderTraversal(root->left);
+        printf("Name: %s, Phone: %s\n", root->name, root->phoneNumber);
+        inOrderTraversal(root->right);
+    }
+}
+
+int main() {
+    int choice;
+    char name[100], phoneNumber[15];
+    Node* result;
+
+    while (1) {
+        printf("\n1. Add Contact\n2. Search Contact\n3. Display All Contacts\n4. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                printf("Enter Name: ");
+                scanf("%s", name);
+                printf("Enter Phone Number: ");
+                scanf("%s", phoneNumber);
+                insert(&root, name, phoneNumber);
+                break;
+            case 2:
+                printf("Enter Name to Search: ");
+                scanf("%s", name);
+                result = search(root, name);
+                if (result)
+                    printf("Found - Name: %s, Phone: %s\n", result->name, result->phoneNumber);
+                else
+                    printf("Contact not found.\n");
+                break;
+            case 3:
+                printf("Contacts in Alphabetical Order:\n");
+                inOrderTraversal(root);
+                break;
+            case 4:
+                exit(0);
+            default:
+                printf("Invalid choice.\n");
+        }
+    }
+    return 0;
+}
